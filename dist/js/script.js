@@ -2,6 +2,170 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./src/js/form.js":
+/*!************************!*\
+  !*** ./src/js/form.js ***!
+  \************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   sendFormData: () => (/* binding */ sendFormData)
+/* harmony export */ });
+/* harmony import */ var _modal_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./modal.js */ "./src/js/modal.js");
+// form.js
+// Модуль для отправки данных формы на сервер и показа статуса через модальное окно
+// Этот код снабжён подробными обучающими комментариями для самостоятельного изучения.
+
+// Импортируем функции управления модальным окном из отдельного модуля
+
+/**
+ * Инициализирует обработку всех форм на странице: отправка данных через AJAX и показ статуса через модальное окно
+ * — Находит все формы
+ * — Навешивает обработчик отправки на каждую форму
+ * — Показывает индикатор загрузки, отправляет данные на сервер, показывает результат
+ */
+function sendFormData() {
+  // 1. Находим все формы на странице (селектор "form" выбирает все <form>)
+  // forms — NodeList из DOM-элементов-форм, которые будут отправляться через AJAX
+  const forms = document.querySelectorAll("form");
+
+  // 2. Объект с сообщениями для разных этапов отправки формы
+  // loading — путь к спиннеру (картинка загрузки)
+  // success — текст при успешной отправке
+  // failure — текст при ошибке
+  const messages = {
+    loading: "img/form/spinner.svg",
+    success: "Спасибо! Скоро мы с вами свяжемся",
+    failure: "Что-то пошло не так..."
+  };
+
+  // 3. Для каждой найденной формы навешиваем обработчик отправки через postDataJSON
+  // Это позволяет обрабатывать любое количество форм на странице одинаково
+  forms.forEach(form => postDataJSON(form));
+
+  /**
+   * Навешивает обработчик submit на форму и отправляет данные в формате JSON через AJAX
+   * — Показывает индикатор загрузки
+   * — Собирает данные формы
+   * — Отправляет их на сервер
+   * — Показывает результат (успех/ошибка) через модальное окно
+   * @param {HTMLFormElement} form — DOM-элемент формы
+   */
+  function postDataJSON(form) {
+    // Защита от двойного навешивания обработчика (если функцию вызовут повторно)
+    // Это важно, чтобы не было дублирующих запросов и багов при повторной инициализации
+    if (form.dataset.ajaxBound === "1") return;
+    form.dataset.ajaxBound = "1";
+
+    // Навешиваем обработчик события submit на форму
+    form.addEventListener("submit", e => {
+      e.preventDefault(); // Отменяем стандартную отправку формы (перезагрузку страницы)
+
+      // 1. Показываем индикатор загрузки (spinner) внутри формы
+      // Это визуальная обратная связь для пользователя, что данные отправляются
+      const statusMessage = document.createElement("img");
+      statusMessage.src = messages.loading;
+      statusMessage.style.cssText = "display:block;margin:0 auto;";
+      form.insertAdjacentElement("afterend", statusMessage);
+
+      // 2. Создаём и настраиваем XMLHttpRequest для отправки данных
+      // XMLHttpRequest — стандартный способ отправки AJAX-запросов в браузере
+      const request = new XMLHttpRequest();
+      request.open("POST", "server.php"); // Настраиваем POST-запрос на сервер
+      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8"); // Указываем, что отправляем данные в формате JSON
+
+      // 3. Собираем данные формы в объект (ключ-значение)
+      // FormData — удобный способ получить все значения полей формы
+      const formData = new FormData(form);
+      const jsonObject = {};
+      formData.forEach((value, key) => jsonObject[key] = value);
+
+      // 4. Отправляем данные на сервер в формате JSON
+      // JSON.stringify — преобразует объект в строку для передачи на сервер
+      request.send(JSON.stringify(jsonObject));
+
+      // 5. Обработка ответа сервера
+      // Событие "load" — сервер ответил (успех или ошибка)
+      request.addEventListener("load", () => {
+        statusMessage.remove(); // Убираем индикатор загрузки
+
+        if (request.status === 200) {
+          // Если успешно — показываем модалку с успехом и сбрасываем форму
+          showThanksModal(messages.success);
+          form.reset(); // Очищаем поля формы
+        } else {
+          // Если ошибка — показываем модалку с ошибкой
+          showThanksModal(messages.failure);
+        }
+      });
+
+      // 6. Обработка сетевой ошибки (например, нет соединения)
+      request.addEventListener("error", () => {
+        statusMessage.remove();
+        showThanksModal(messages.failure);
+      });
+    });
+  }
+  /*
+   postDataJSON — навешивает обработчик на форму, собирает данные, отправляет их на сервер в формате JSON,
+   показывает индикатор загрузки, обрабатывает ответ сервера (успех/ошибка), вызывает showThanksModal.
+  */
+
+  /**
+   * Показывает модальное окно с сообщением (успех или ошибка)
+   * — Скрывает основную форму в модалке
+   * — Открывает модалку
+   * — Создаёт и показывает блок с сообщением (успех/ошибка)
+   * — Через 4 секунды (или при ручном закрытии) возвращает модалку к исходному состоянию
+   * @param {string} message — текст сообщения для пользователя
+   */
+  function showThanksModal(message) {
+    // 1. Находим модальное окно и основной диалог (форму) внутри него
+    const modal = document.querySelector(".modal");
+    const mainDialog = modal.querySelector(".modal__dialog");
+
+    // 2. Прячем основной диалог с формой (добавляем класс hide, убираем show)
+    if (mainDialog) {
+      mainDialog.classList.add("hide");
+      mainDialog.classList.remove("show");
+    }
+
+    // 3. Открываем модальное окно (делает его видимым)
+    (0,_modal_js__WEBPACK_IMPORTED_MODULE_0__.openModal)();
+
+    // 4. Удаляем старые "thanks"-модалки, если они остались (на всякий случай)
+    modal.querySelectorAll(".modal__dialog--thanks").forEach(n => n.remove());
+
+    // 5. Создаём новый блок для сообщения благодарности
+    const thanksModal = document.createElement("div");
+    thanksModal.classList.add("modal__dialog", "modal__dialog--thanks", "show");
+    thanksModal.innerHTML = `
+            <div class="modal__content">
+                <div class="modal__close" data-close>×</div>
+                <div class="modal__title">${message}</div>
+            </div>
+        `;
+
+    // 6. Добавляем блок с сообщением в модальное окно
+    modal.append(thanksModal);
+
+    // 7. Автоматически закрываем модалку через 4 секунды (или пользователь может закрыть вручную)
+    // Важно: даже если пользователь закроет раньше — closeModal() всё почистит
+    setTimeout(() => {
+      // если модалка уже закрыта — просто выходим
+      if (!modal.classList.contains("modal--active")) return;
+      (0,_modal_js__WEBPACK_IMPORTED_MODULE_0__.closeModal)();
+    }, 4000);
+  }
+  /*
+   showThanksModal — скрывает основную форму в модалке, открывает модалку, создаёт и показывает блок с сообщением (успех/ошибка),
+   через 4 секунды (или при ручном закрытии) возвращает модалку к исходному состоянию.
+  */
+}
+
+/***/ }),
+
 /***/ "./src/js/menu-cards.js":
 /*!******************************!*\
   !*** ./src/js/menu-cards.js ***!
@@ -104,81 +268,132 @@ function createMenuCards(containerSelector, cardData) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   initModal: () => (/* binding */ initModal)
+/* harmony export */   closeModal: () => (/* binding */ closeModal),
+/* harmony export */   initModal: () => (/* binding */ initModal),
+/* harmony export */   openModal: () => (/* binding */ openModal)
 /* harmony export */ });
-// Экспортируемая функция инициализации модального окна
+// modal.js
+// Модуль для управления модальным окном (popup/modal)
+// Здесь реализованы функции открытия, закрытия и инициализации модального окна.
+// Код снабжён подробными обучающими комментариями для самостоятельного изучения.
+
+// modal — глобальная переменная, в которую мы сохраняем DOM-элемент модального окна.
+// Это позволяет обращаться к модалке из разных функций.
+let modal;
+
+// modalTimerId — переменная для хранения идентификатора таймера автопоказа модалки.
+// Таймер нужен, чтобы через определённое время автоматически показать окно пользователю.
+let modalTimerId;
+
+/**
+ * Открывает модальное окно
+ * — Проверяет, что элемент модалки найден
+ * — Добавляет класс, делающий модалку видимой ("modal--active")
+ * — Блокирует прокрутку страницы (overflow: hidden)
+ * — Сбрасывает таймер автопоказа, чтобы окно не открылось повторно
+ *
+ * Почему важно блокировать прокрутку? Чтобы пользователь не мог скроллить страницу, пока открыта модалка.
+ * Почему нужен clearTimeout? Если пользователь открыл окно вручную, автотаймер больше не нужен.
+ */
+function openModal() {
+  if (!modal) return; // Проверяем, что модалка существует
+  modal.classList.add("modal--active"); // Делаем модалку видимой
+  document.body.style.overflow = "hidden"; // Блокируем прокрутку страницы
+  clearTimeout(modalTimerId); // Сбрасываем таймер автопоказа
+}
+
+/**
+ * Закрывает модальное окно
+ * — Проверяет, что элемент модалки найден
+ * — Удаляет класс видимости ("modal--active"), скрывая окно
+ * — Возвращает прокрутку страницы (overflow: "")
+ * — Удаляет все окна с сообщением "спасибо" (.modal__dialog--thanks)
+ * — Возвращает основную форму/диалог в модалке в видимое состояние
+ *
+ * Почему удаляем "спасибо"-модалки? Чтобы при повторном открытии показывалась только форма, а не старое сообщение.
+ * Почему возвращаем форму? Чтобы пользователь мог снова заполнить и отправить её.
+ */
+function closeModal() {
+  if (!modal) return; // Проверяем, что модалка существует
+
+  modal.classList.remove("modal--active"); // Скрываем модалку
+  document.body.style.overflow = ""; // Возвращаем прокрутку страницы
+
+  // Удаляем все "спасибо" окна (модалки с сообщением)
+  modal.querySelectorAll(".modal__dialog--thanks").forEach(n => n.remove());
+
+  // Возвращаем основную форму/диалог в модалке в видимое состояние
+  const mainDialog = modal.querySelector(".modal__dialog");
+  if (mainDialog) {
+    mainDialog.classList.add("show");
+    mainDialog.classList.remove("hide");
+  }
+}
+
+/**
+ * Инициализирует работу модального окна
+ * — modalSelector: CSS-селектор модального окна (например, '.modal')
+ * — triggerSelector: CSS-селектор кнопок/элементов, открывающих модалку (например, '[data-modal]')
+ * — closeOnOverlay: закрывать ли модалку по клику на подложку (overlay)
+ *
+ * Как работает:
+ * 1. Находит модальное окно и все триггеры (кнопки/ссылки), которые должны его открывать
+ * 2. Навешивает обработчик на каждый триггер — при клике открывается модалка
+ * 3. Навешивает обработчик на само модальное окно — если клик по overlay или по крестику, окно закрывается
+ * 4. Навешивает обработчик на document — если нажата клавиша Escape и модалка открыта, окно закрывается
+ * 5. Запускает таймер автопоказа модалки через 50 секунд (можно изменить)
+ * 6. Навешивает обработчик на scroll — если пользователь доскроллил до конца страницы, модалка открывается
+ *
+ * Почему делегируем обработку клика на overlay? Это удобно и надёжно: не нужно искать отдельный элемент подложки.
+ * Почему используем таймер и scroll? Это позволяет показать окно тем, кто долго находится на странице или дочитал до конца.
+ */
 function initModal({
   modalSelector,
-  // CSS-селектор модального окна
   triggerSelector,
-  // CSS-селектор элементов, открывающих модалку
-  closeOnOverlay = true // Закрывать ли модалку по клику на подложку (по умолчанию true)
+  closeOnOverlay = true
 }) {
-  // Получаем DOM-элемент модального окна
-  const modal = document.querySelector(modalSelector);
-  // Получаем кнопку закрытия внутри модального окна (по атрибуту data-close)
-  const modalCloseBtn = modal.querySelector("[data-close]");
-  // Получаем все элементы-триггеры, которые должны открывать модалку
-  const triggerSelectors = document.querySelectorAll(triggerSelector);
+  // 1. Получаем DOM-элемент модального окна по селектору
+  modal = document.querySelector(modalSelector);
+  // 2. Получаем все элементы-триггеры (кнопки/ссылки), которые должны открывать модалку
+  const triggers = document.querySelectorAll(triggerSelector);
 
-  // Функция открытия модального окна
-  function openModal() {
-    // Добавляем класс, который делает модалку видимой
-    modal.classList.add("modal--active");
-    document.body.style.overflow = "hidden"; // Блокируем прокрутку страницы при открытой модалке
-    clearInterval(modalTimerId); // Очищаем таймер, если модалка была открыта вручную
-  }
+  // 3. Навешиваем обработчик на каждый триггер для открытия модального окна
+  triggers.forEach(btn => btn.addEventListener("click", openModal));
 
-  // Функция закрытия модального окна
-  function closeModal() {
-    // Удаляем класс, скрывающий модалку
-    modal.classList.remove("modal--active");
-    document.body.style.overflow = ""; // Восстанавливаем прокрутку страницы
-  }
-
-  // Вешаем обработчик на каждый триггер для открытия модального окна
-  triggerSelectors.forEach(trigger => {
-    trigger.addEventListener("click", openModal);
-  });
-
-  // Вешаем обработчик на само модальное окно
-  // Закрываем модалку, если клик был по подложке (overlay) или по кнопке закрытия
+  // 4. Навешиваем обработчик на само модальное окно для закрытия по overlay или по кнопке закрытия
   modal.addEventListener("click", e => {
     // Если клик по overlay (самому модальному окну) и разрешено закрытие по overlay,
-    // или если клик по кнопке закрытия
-    if (e.target === modal && closeOnOverlay || e.target === modalCloseBtn) {
+    // или если клик по элементу с data-close (крестик)
+    if (e.target === modal && closeOnOverlay || e.target.getAttribute("data-close") !== null) {
       closeModal();
     }
   });
 
-  // Обработчик закрытия модального окна по клавише Escape
-  // ------------------------------------------------------
-  // Почему обработчик вешается на document, а не на modal?
-  // - Событие keydown возникает только у того элемента, который находится в фокусе.
-  // - Модальное окно (modal) обычно не получает фокус, если явно не назначить tabindex и не вызвать focus().
-  // - Поэтому, если повесить обработчик на modal, он не сработает, когда пользователь нажимает Escape вне модалки.
-  // - Вешая обработчик на document, мы гарантируем, что событие будет поймано всегда, независимо от того, где сейчас фокус.
-  // Как работает этот обработчик:
-  // 1. Каждый раз, когда пользователь нажимает любую клавишу, срабатывает событие keydown на document.
-  // 2. Внутри обработчика проверяем, была ли нажата именно клавиша Escape (e.key === "Escape").
-  // 3. Дополнительно проверяем, что модальное окно сейчас открыто (modal.classList.contains("modal--active")).
-  //    Это нужно, чтобы не пытаться закрыть уже закрытую модалку.
-  // 4. Если оба условия выполняются, вызываем функцию closeModal(), которая скрывает модальное окно и возвращает прокрутку страницы.
+  // 5. Навешиваем обработчик на document для закрытия модалки по клавише Escape
   document.addEventListener("keydown", e => {
-    // Проверяем, нажата ли клавиша Escape и открыта ли модалка
+    // Проверяем, что нажата клавиша Escape и модалка открыта
     if (e.key === "Escape" && modal.classList.contains("modal--active")) {
-      closeModal(); // Закрываем модальное окно
+      closeModal();
     }
   });
-  const modalTimerId = setTimeout(openModal, 50000);
+
+  // 6. Запускаем таймер автопоказа модального окна через 50 секунд
+  // Это полезно для привлечения внимания пользователя, если он долго на странице
+  modalTimerId = setTimeout(openModal, 50000);
+
+  // 7. Функция для показа модалки при прокрутке до конца страницы
   function showModalByScroll() {
+    // Если пользователь доскроллил до самого низа страницы
     if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight - 1) {
       openModal();
       window.removeEventListener("scroll", showModalByScroll);
     }
   }
+
+  // 8. Навешиваем обработчик на scroll для автопоказа модалки при достижении конца страницы
   window.addEventListener("scroll", showModalByScroll);
 }
+// initModal — инициализирует работу модального окна: открытие по кнопке, закрытие по overlay/крестику/Escape, автопоказ по таймеру и при прокрутке
 
 /***/ }),
 
@@ -450,6 +665,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _timer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./timer.js */ "./src/js/timer.js");
 /* harmony import */ var _modal_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./modal.js */ "./src/js/modal.js");
 /* harmony import */ var _menu_cards_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./menu-cards.js */ "./src/js/menu-cards.js");
+/* harmony import */ var _form_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./form.js */ "./src/js/form.js");
 // Импортируем функцию для инициализации вкладок из отдельного модуля
 
 // Импортируем функцию для запуска таймера из отдельного модуля
@@ -457,6 +673,8 @@ __webpack_require__.r(__webpack_exports__);
 // Импортируем функцию для инициализации модального окна из отдельного модуля
 
 // Импортируем функцию для создания карточек меню из отдельного модуля
+
+// Импортируем функцию для отправки данных формы из отдельного модуля
 
 
 // Ждём полной загрузки DOM, чтобы все элементы были доступны для поиска и манипуляций
@@ -509,6 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
     price: 14.99,
     classes: ["menu__item"]
   }]);
+  (0,_form_js__WEBPACK_IMPORTED_MODULE_4__.sendFormData)();
 });
 })();
 
